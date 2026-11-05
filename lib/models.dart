@@ -117,6 +117,8 @@ class Video {
   final String embed;
   final String file;
   final String thumb;
+  final String thumbAuto;   // the picture found on the video host's own page (LuluStream etc.)
+  final String duration;
   final List<String> tags;
   final List<VFile> files;
 
@@ -127,6 +129,8 @@ class Video {
     required this.embed,
     required this.file,
     required this.thumb,
+    required this.thumbAuto,
+    required this.duration,
     required this.tags,
     required this.files,
   });
@@ -149,6 +153,8 @@ class Video {
       embed: (j['embed'] ?? '').toString(),
       file: (j['file'] ?? '').toString(),
       thumb: (j['thumb'] ?? '').toString(),
+      thumbAuto: (j['thumbAuto'] ?? '').toString(),
+      duration: (j['duration'] ?? '').toString(),
       tags: tags,
       files: files,
     );
@@ -161,6 +167,8 @@ class Video {
         'embed': embed,
         'file': file,
         'thumb': thumb,
+        'thumbAuto': thumbAuto,
+        'duration': duration,
         'tags': tags,
         'files': files.map((f) => f.toJson()).toList(),
       };
@@ -188,6 +196,7 @@ class Video {
     if (y != null) return 'https://i.ytimg.com/vi/${y.group(1)}/hqdefault.jpg';
     final d = RegExp(r'^https://drive\.google\.com/file/d/([\w-]+)/preview').firstMatch(e);
     if (d != null) return 'https://drive.google.com/thumbnail?id=${d.group(1)}&sz=w640';
+    if (thumbAuto.isNotEmpty) return thumbAuto;
     return '';
   }
 
