@@ -178,7 +178,17 @@ class _VideoListScreenState extends State<VideoListScreen> with AutomaticKeepAli
                   child: shown.isEmpty
                       ? ListView(children: [
                           const SizedBox(height: 80),
-                          Center(child: Text(_all.isEmpty ? 'No videos yet. Pull down to refresh.' : 'No videos match.')),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: Text(
+                              _all.isNotEmpty
+                                  ? 'No videos match.'
+                                  : (_fromCache && Api.lastError.isNotEmpty)
+                                      ? Api.lastError
+                                      : 'The website has no videos in its database for this page yet (the ones in js/videos.js are not included until you run the import). Pull down to refresh.',
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                         ])
                       : ListView.builder(
                           itemCount: shown.length,
