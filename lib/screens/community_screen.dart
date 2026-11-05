@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../api.dart';
 import '../models.dart';
+import '../theme.dart';
+import '../widgets.dart';
 
 class CommunityScreen extends StatefulWidget {
   // called when the website says the quick survey must be done again
@@ -104,16 +106,15 @@ class _CommunityScreenState extends State<CommunityScreen> with AutomaticKeepAli
   }
 
   Widget _commentTile(Comment c) {
-    return Card(
-      margin: const EdgeInsets.fromLTRB(12, 5, 12, 5),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
+    return SoftCard(
+      margin: const EdgeInsets.fromLTRB(16, 5, 16, 5),
+      padding: const EdgeInsets.all(14),
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
-              Expanded(child: Text(c.name, style: const TextStyle(fontWeight: FontWeight.w600))),
-              Text(c.day, style: Theme.of(context).textTheme.bodySmall),
+              Expanded(child: Text(c.name, style: const TextStyle(fontWeight: FontWeight.w800, color: C.text))),
+              Text(c.day, style: const TextStyle(fontSize: 12, color: C.muted)),
             ]),
             if (c.rating > 0) _stars(c.rating),
             const SizedBox(height: 4),
@@ -134,7 +135,6 @@ class _CommunityScreenState extends State<CommunityScreen> with AutomaticKeepAli
             ),
           ],
         ),
-      ),
     );
   }
 
@@ -150,13 +150,18 @@ class _CommunityScreenState extends State<CommunityScreen> with AutomaticKeepAli
               : RefreshIndicator(
                   onRefresh: _load,
                   child: list == null
-                      ? ListView(children: const [SizedBox(height: 80), Center(child: Text('Could not load comments. Pull down to retry.'))])
+                      ? ListView(children: const [SizedBox(height: 60), EmptyState(icon: Icons.cloud_off_rounded, text: 'Could not load comments. Pull down to retry.')])
                       : list.isEmpty
-                          ? ListView(children: const [SizedBox(height: 80), Center(child: Text('No comments yet. Be the first!'))])
-                          : ListView.builder(itemCount: list.length, itemBuilder: (c, i) => _commentTile(list[i])),
+                          ? ListView(children: const [HeroBanner(title: 'Community', subtitle: 'Feedback and comments'), SizedBox(height: 30), EmptyState(icon: Icons.forum_outlined, text: 'No comments yet. Be the first!')])
+                          : ListView.builder(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              itemCount: list.length + 1,
+                              itemBuilder: (c, i) => i == 0 ? const HeroBanner(title: 'Community', subtitle: 'Feedback and comments') : _commentTile(list[i - 1]),
+                            ),
                 ),
         ),
         Material(
+          color: Colors.white,
           elevation: 8,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
@@ -182,14 +187,14 @@ class _CommunityScreenState extends State<CommunityScreen> with AutomaticKeepAli
                       maxLength: 500,
                       minLines: 1,
                       maxLines: 3,
-                      decoration: const InputDecoration(hintText: 'Write a comment', counterText: '', isDense: true, border: OutlineInputBorder()),
+                      decoration: const InputDecoration(hintText: 'Write a comment', counterText: '', isDense: true),
                     ),
                   ),
                   IconButton(
                     onPressed: _sending ? null : _send,
                     icon: _sending
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.send),
+                        : const Icon(Icons.send_rounded, color: C.accent),
                   ),
                 ]),
               ],
