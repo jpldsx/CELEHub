@@ -10,7 +10,7 @@ class Config {
 
   // Only if you use videos with an id like "lulu:CODE": your main host's embed address,
   // the same as MINITUBE_EMBED_BASE on the website. Leave '' if you don't have one.
-  static const String embedBase = 'https:/luluvido.com/e/';
+  static const String embedBase = '';
 
   // Where under-18 visitors are sent (same as the website).
   static const String minorUrl = 'https://www.khanacademy.org/';
