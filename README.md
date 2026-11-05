@@ -14,5 +14,7 @@ so updating videos from Telegram updates the app too.
 Open the failed run, copy the first red error and send it to Claude.
 
 ## If the app shows no videos
-Cloudflare "Bot Fight Mode" can block app requests. In Cloudflare: Security > WAF > Custom rules,
-add a rule: User Agent contains `CELEHubApp` -> Skip (or Allow).
+The empty screen now says why. Also try opening `https://YOUR-DOMAIN/api/videos?page=study` in your phone browser:
+- it shows `{"ok":true,"videos":[...]}` with items: the app should work; check `siteUrl` in `lib/config.dart`.
+- it shows `"videos":[]`: the database has no videos yet. Add some with the Telegram bot, or run the import of js/videos.js.
+- it shows a "Just a moment" page: Cloudflare is blocking automatic requests (Security > Bots). Ask Claude.
