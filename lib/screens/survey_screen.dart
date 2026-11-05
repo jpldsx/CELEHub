@@ -3,6 +3,8 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../api.dart';
 import '../config.dart';
 import '../store.dart';
+import '../theme.dart';
+import '../widgets.dart';
 import 'player_screen.dart' show openLink;
 
 // the Cloudflare check (a tiny web page that hands the result back to the app)
@@ -120,7 +122,7 @@ class _SurveyScreenState extends State<SurveyScreen> {
         keyboardType: type,
         maxLength: max,
         textCapitalization: type == null ? TextCapitalization.words : TextCapitalization.none,
-        decoration: InputDecoration(labelText: label, hintText: hint, counterText: '', border: const OutlineInputBorder()),
+        decoration: InputDecoration(labelText: label, hintText: hint, counterText: ''),
         onChanged: (_) => setState(() {}),
       ),
     );
@@ -130,14 +132,26 @@ class _SurveyScreenState extends State<SurveyScreen> {
   Widget build(BuildContext context) {
     if (_minor) return _minorView(context);
     return Scaffold(
-      body: SafeArea(
+      body: AppBackdrop(
+        child: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            const SizedBox(height: 8),
-            Text('Welcome to CELEHub', style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 6),
-            const Text('A quick survey first. It takes less than a minute and gives you your own visitor ID.'),
+            const BrandMark(size: 1.15),
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(gradient: C.hero, borderRadius: BorderRadius.circular(C.radius), boxShadow: C.shadowMd),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Welcome to CELEHub', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
+                  SizedBox(height: 4),
+                  Text('A quick survey first. It takes less than a minute and gives you your own visitor ID.', style: TextStyle(color: Color(0xD9FFFFFF), height: 1.35)),
+                ],
+              ),
+            ),
             const SizedBox(height: 18),
             _field(_name, 'Full name', max: 80, hint: 'First and last name'),
             _field(_age, 'Age', type: TextInputType.number, max: 2),
@@ -169,13 +183,15 @@ class _SurveyScreenState extends State<SurveyScreen> {
             ),
           ],
         ),
+        ),
       ),
     );
   }
 
   Widget _minorView(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
+      body: AppBackdrop(
+        child: SafeArea(
         child: Center(
           child: Padding(
             padding: const EdgeInsets.all(28),
@@ -195,6 +211,7 @@ class _SurveyScreenState extends State<SurveyScreen> {
               ],
             ),
           ),
+        ),
         ),
       ),
     );
