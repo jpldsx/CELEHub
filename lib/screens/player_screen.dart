@@ -35,6 +35,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   late final WebViewController _web;
   String _blocked = '';   // a jump the video page tried to make (shown so we can see what is going on)
   String _error = '';
+  String _loaded = '';    // the page the player really loaded (title and address)
 
   @override
   void initState() {
@@ -53,7 +54,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
           return NavigationDecision.prevent;
         },
         onWebResourceError: (e) {
-          if (mounted) setState(() => _error = '${e.errorCode} ${e.description}');
+          final where = e.isForMainFrame == true ? 'page' : 'video box';
+          if (mounted) setState(() => _error = '${e.errorCode} ${e.description} ($where)');
+        },
+        onPageFinished: (url) async {
+          String? title;
+          try {
+            title = await _web.getTitle();
+          } catch (_) {}
+          if (mounted) setState(() => _loaded = '${title ?? '(no title)'}  |  $url');
         },
       ))
       ..loadRequest(Uri.parse(_playerUrl(widget.video)));
@@ -93,6 +102,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 ],
                 const SizedBox(height: 14),
                 SelectableText('Source: ${v.file.isNotEmpty ? v.file : v.embedUrl}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                if (_loaded.isNotEmpty)
+                  SelectableText('Page: $_loaded', style: const TextStyle(fontSize: 11, color: Colors.grey)),
                 if (_blocked.isNotEmpty)
                   SelectableText('Blocked a jump to: $_blocked', style: const TextStyle(fontSize: 11, color: Colors.grey)),
                 if (_error.isNotEmpty)
