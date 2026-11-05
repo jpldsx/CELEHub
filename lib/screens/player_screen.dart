@@ -6,17 +6,11 @@ import '../config.dart';
 import '../models.dart';
 import '../store.dart';
 
-String _attr(String s) => s.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
-
-String _playerHtml(Video v) {
-  const style = 'html,body{margin:0;height:100%;background:#000}iframe,video{border:0;width:100%;height:100%}';
-  if (v.file.isNotEmpty) {
-    return '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">'
-        '<style>$style</style></head><body><video controls playsinline src="${_attr(v.file)}"></video></body></html>';
-  }
-  return '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">'
-      '<style>$style</style></head><body><iframe src="${_attr(v.embedUrl)}" '
-      'allow="autoplay; fullscreen; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></body></html>';
+// the video is shown by a tiny page on YOUR website (player.html), so the video host sees your real site address
+String _playerUrl(Video v) {
+  final base = '${Config.siteUrl}/player.html';
+  if (v.file.isNotEmpty) return '$base?f=${Uri.encodeComponent(v.file)}';
+  return '$base?u=${Uri.encodeComponent(v.embedUrl)}';
 }
 
 // look like normal Chrome on a phone (some video hosts refuse an Android "WebView")
@@ -53,7 +47,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         if (u == 'about:blank' || u.startsWith(Config.siteUrl)) return NavigationDecision.navigate;
         return req.isMainFrame ? NavigationDecision.prevent : NavigationDecision.navigate;   // the page can't wander off
       }))
-      ..loadHtmlString(_playerHtml(widget.video), baseUrl: Config.siteUrl);
+      ..loadRequest(Uri.parse(_playerUrl(widget.video)));
     _allowVideoHosts();
   }
 
@@ -90,6 +84,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 ],
                 const SizedBox(height: 14),
                 const Text('If the player stays blank, tap "Open outside".', style: TextStyle(fontSize: 12)),
+                const SizedBox(height: 4),
+                SelectableText('Source: ${v.file.isNotEmpty ? v.file : v.embedUrl}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
                 const SizedBox(height: 8),
                 Row(
                   children: [
