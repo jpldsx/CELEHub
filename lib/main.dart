@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'api.dart';
 import 'store.dart';
+import 'theme.dart';
+import 'widgets.dart';
 import 'screens/community_screen.dart';
 import 'screens/saved_screen.dart';
 import 'screens/support_screen.dart';
@@ -18,16 +20,11 @@ class CeleHubApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const seed = Color(0xFF4F46E5);
     return MaterialApp(
       title: 'CELEHub',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(useMaterial3: true, colorScheme: ColorScheme.fromSeed(seedColor: seed)),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.dark),
-      ),
-      themeMode: ThemeMode.system,
+      theme: buildTheme(),
+      themeMode: ThemeMode.light,
       home: const Gate(),
     );
   }
@@ -78,7 +75,7 @@ class _GateState extends State<Gate> {
   @override
   Widget build(BuildContext context) {
     if (_checking) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: AppBackdrop(child: Center(child: CircularProgressIndicator())));
     }
     if (!_in) return SurveyScreen(onDone: _enter);
     return HomeShell(onSignOut: _leave);
@@ -107,11 +104,14 @@ class _HomeShellState extends State<HomeShell> {
     ];
     return Scaffold(
       appBar: AppBar(
-        title: const Text('CELEHub'),
-        centerTitle: false,
+        titleSpacing: 16,
+        title: const BrandMark(),
+        bottom: const PreferredSize(preferredSize: Size.fromHeight(1), child: Divider(height: 1, color: C.border)),
       ),
-      body: IndexedStack(index: _tab, children: pages),
+      body: AppBackdrop(child: IndexedStack(index: _tab, children: pages)),
       bottomNavigationBar: NavigationBar(
+        height: 66,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         selectedIndex: _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),
         destinations: const [
