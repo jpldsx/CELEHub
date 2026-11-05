@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 import '../config.dart';
 import '../models.dart';
 import '../store.dart';
@@ -15,8 +16,12 @@ String _playerHtml(Video v) {
   }
   return '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">'
       '<style>$style</style></head><body><iframe src="${_attr(v.embedUrl)}" '
-      'allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen></iframe></body></html>';
+      'allow="autoplay; fullscreen; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></body></html>';
 }
+
+// look like normal Chrome on a phone (some video hosts refuse an Android "WebView")
+const String _chromeUserAgent =
+    'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36';
 
 Future<void> openLink(String url) async {
   try {
@@ -42,12 +47,26 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _web = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0xFF000000))
+      ..setUserAgent(_chromeUserAgent)
       ..setNavigationDelegate(NavigationDelegate(onNavigationRequest: (req) {
         final u = req.url;
         if (u == 'about:blank' || u.startsWith(Config.siteUrl)) return NavigationDecision.navigate;
         return req.isMainFrame ? NavigationDecision.prevent : NavigationDecision.navigate;   // the page can't wander off
       }))
       ..loadHtmlString(_playerHtml(widget.video), baseUrl: Config.siteUrl);
+    _allowVideoHosts();
+  }
+
+  // Many video hosts need third-party cookies and a tap-to-play without extra blocking
+  void _allowVideoHosts() {
+    final platform = _web.platform;
+    if (platform is AndroidWebViewController) {
+      platform.setMediaPlaybackRequiresUserGesture(false);
+      final cookies = WebViewCookieManager().platform;
+      if (cookies is AndroidWebViewCookieManager) {
+        cookies.setAcceptThirdPartyCookies(platform, true);
+      }
+    }
   }
 
   @override
@@ -70,6 +89,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   Wrap(spacing: 6, runSpacing: 6, children: [for (final t in v.tags) Chip(label: Text(t), visualDensity: VisualDensity.compact)]),
                 ],
                 const SizedBox(height: 14),
+                const Text('If the player stays blank, tap "Open outside".', style: TextStyle(fontSize: 12)),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     ValueListenableBuilder<int>(
