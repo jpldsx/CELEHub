@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../config.dart';
 import '../store.dart';
+import '../theme.dart';
+import '../widgets.dart';
 
 class SupportScreen extends StatelessWidget {
   final Future<void> Function() onSignOut;
@@ -11,14 +13,17 @@ class SupportScreen extends StatelessWidget {
   Widget _qr(BuildContext context, String label, String path) {
     if (path.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(top: 14),
+      padding: const EdgeInsets.only(top: 16),
       child: Column(children: [
-        Text(label, style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 6),
-        Image.network(
-          _url(path),
-          width: 220,
-          errorBuilder: (c, e, s) => const Text('Could not load the picture.'),
+        TagPill(label),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Image.network(
+            _url(path),
+            width: 220,
+            errorBuilder: (c, e, s) => const Text('Could not load the picture.'),
+          ),
         ),
       ]),
     );
@@ -28,35 +33,38 @@ class SupportScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasQr = Config.qrphImage.isNotEmpty || Config.instapayImage.isNotEmpty;
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.only(bottom: 16),
       children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Text('Support CELEHub', style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 8),
-                const Text(
-                  'CELEHub is free for CE students. If it helped you, you can help keep it running. Every bit is optional and appreciated.',
-                  textAlign: TextAlign.center,
-                ),
-                if (hasQr && Config.accountName.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Text('Account name: ${Config.accountName}', style: const TextStyle(fontWeight: FontWeight.w600)),
-                ],
-                _qr(context, 'QR Ph', Config.qrphImage),
-                _qr(context, 'InstaPay QR', Config.instapayImage),
+        const HeroBanner(title: 'Support CELEHub', subtitle: 'Free for CE students, always'),
+        SoftCard(
+          child: Column(
+            children: [
+              const Text(
+                'CELEHub is free for CE students. If it helped you, you can help keep it running. Every bit is optional and appreciated.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: C.muted, height: 1.45),
+              ),
+              if (hasQr && Config.accountName.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text('Account name: ${Config.accountName}', style: const TextStyle(fontWeight: FontWeight.w700, color: C.text)),
               ],
-            ),
+              _qr(context, 'QR Ph', Config.qrphImage),
+              _qr(context, 'InstaPay QR', Config.instapayImage),
+            ],
           ),
         ),
-        const SizedBox(height: 16),
-        Card(
+        SoftCard(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: ListTile(
-            leading: const Icon(Icons.person_outline),
-            title: Text(Store.name.isEmpty ? 'Signed in' : Store.name),
-            subtitle: const Text('Not you? Sign out to do the quick survey again.'),
+            contentPadding: EdgeInsets.zero,
+            leading: Container(
+              width: 40,
+              height: 40,
+              decoration: const BoxDecoration(gradient: C.logo, shape: BoxShape.circle),
+              child: const Icon(Icons.person_rounded, color: Colors.white),
+            ),
+            title: Text(Store.name.isEmpty ? 'Signed in' : Store.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: const Text('Not you? Sign out to do the quick survey again.', style: TextStyle(fontSize: 12.5)),
             trailing: TextButton(onPressed: onSignOut, child: const Text('Sign out')),
           ),
         ),
