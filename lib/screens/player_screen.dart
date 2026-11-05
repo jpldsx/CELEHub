@@ -5,6 +5,8 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 import '../config.dart';
 import '../models.dart';
 import '../store.dart';
+import '../theme.dart';
+import '../widgets.dart';
 
 // the video is shown by a tiny page on YOUR website (player.html), so the video host sees your real site address
 String _playerUrl(Video v) {
@@ -33,9 +35,6 @@ class PlayerScreen extends StatefulWidget {
 
 class _PlayerScreenState extends State<PlayerScreen> {
   late final WebViewController _web;
-  String _blocked = '';   // a jump the video page tried to make (shown so we can see what is going on)
-  String _error = '';
-  String _loaded = '';    // the page the player really loaded (title and address)
 
   @override
   void initState() {
@@ -46,23 +45,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
       ..setBackgroundColor(const Color(0xFF000000))
       ..setUserAgent(_chromeUserAgent)
       ..setNavigationDelegate(NavigationDelegate(
+        // Ads try to jump to other pages. Say "no" quietly: no setState, no rebuild, no work,
+        // so hundreds of blocked jumps can not slow the app down or crash it.
         onNavigationRequest: (req) {
-          final u = req.url;
           if (!req.isMainFrame) return NavigationDecision.navigate;               // the video box inside the page
+          final u = req.url;
           if (u == 'about:blank' || u.startsWith('${Config.siteUrl}/player')) return NavigationDecision.navigate;
-          if (mounted) setState(() => _blocked = u);                              // the page tried to leave: stay on the video
           return NavigationDecision.prevent;
-        },
-        onWebResourceError: (e) {
-          final where = e.isForMainFrame == true ? 'page' : 'video box';
-          if (mounted) setState(() => _error = '${e.errorCode} ${e.description} ($where)');
-        },
-        onPageFinished: (url) async {
-          String? title;
-          try {
-            title = await _web.getTitle();
-          } catch (_) {}
-          if (mounted) setState(() => _loaded = '${title ?? '(no title)'}  |  $url');
         },
       ))
       ..loadRequest(Uri.parse(_playerUrl(widget.video)));
@@ -82,68 +71,101 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   @override
+  void dispose() {
+    // stop the video and any ad scripts the moment you leave this page
+    try {
+      _web.loadRequest(Uri.parse('about:blank'));
+    } catch (_) {}
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final v = widget.video;
     return Scaffold(
-      appBar: AppBar(title: Text(v.title, maxLines: 1, overflow: TextOverflow.ellipsis)),
-      body: Column(
-        children: [
-          AspectRatio(aspectRatio: 16 / 9, child: WebViewWidget(controller: _web)),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                Text(v.title, style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 6),
-                Text(v.date, style: Theme.of(context).textTheme.bodySmall),
-                if (v.tags.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Wrap(spacing: 6, runSpacing: 6, children: [for (final t in v.tags) Chip(label: Text(t), visualDensity: VisualDensity.compact)]),
-                ],
-                const SizedBox(height: 14),
-                SelectableText('Source: ${v.file.isNotEmpty ? v.file : v.embedUrl}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                if (_loaded.isNotEmpty)
-                  SelectableText('Page: $_loaded', style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                if (_blocked.isNotEmpty)
-                  SelectableText('Blocked a jump to: $_blocked', style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                if (_error.isNotEmpty)
-                  SelectableText('Player error: $_error', style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    ValueListenableBuilder<int>(
-                      valueListenable: Store.changes,
-                      builder: (c, _, w) {
-                        final fav = Store.isFav(v);
-                        return FilledButton.tonalIcon(
-                          onPressed: () => Store.toggleFav(v),
-                          icon: Icon(fav ? Icons.bookmark : Icons.bookmark_border),
-                          label: Text(fav ? 'Saved' : 'Save'),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-                if (v.files.isNotEmpty) ...[
-                  const SizedBox(height: 22),
-                  Text('Lecture notes and handouts', style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 6),
-                  for (final f in v.files)
-                    Card(
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      child: ListTile(
-                        leading: const Icon(Icons.description_outlined),
-                        title: Text(f.title),
-                        subtitle: Text(f.label),
-                        trailing: const Icon(Icons.download),
-                        onTap: () => openLink(f.url),
-                      ),
-                    ),
-                ],
-              ],
+      backgroundColor: C.bg,
+      appBar: AppBar(
+        titleSpacing: 0,
+        title: const BrandMark(size: 0.85),
+        bottom: const PreferredSize(preferredSize: Size.fromHeight(1), child: Divider(height: 1, color: C.border)),
+      ),
+      body: AppBackdrop(
+        child: Column(
+          children: [
+            Container(
+              color: Colors.black,
+              child: AspectRatio(aspectRatio: 16 / 9, child: WebViewWidget(controller: _web)),
             ),
-          ),
-        ],
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.only(bottom: 20),
+                children: [
+                  SoftCard(
+                    margin: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(v.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: C.text, height: 1.25)),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(v.date, style: const TextStyle(fontSize: 13, color: C.muted)),
+                            for (final t in v.tags) TagPill(t),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        ValueListenableBuilder<int>(
+                          valueListenable: Store.changes,
+                          builder: (c, _, w) {
+                            final fav = Store.isFav(v);
+                            return SizedBox(
+                              width: double.infinity,
+                              child: fav
+                                  ? OutlinedButton.icon(
+                                      onPressed: () => Store.toggleFav(v),
+                                      icon: const Icon(Icons.bookmark_rounded),
+                                      label: const Text('Saved'),
+                                    )
+                                  : FilledButton.icon(
+                                      onPressed: () => Store.toggleFav(v),
+                                      icon: const Icon(Icons.bookmark_border_rounded),
+                                      label: const Text('Save for later'),
+                                    ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (v.files.isNotEmpty) ...[
+                    const SectionTitle('Lecture notes and handouts'),
+                    for (final f in v.files)
+                      SoftCard(
+                        margin: const EdgeInsets.fromLTRB(16, 5, 16, 5),
+                        padding: EdgeInsets.zero,
+                        child: ListTile(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(C.radius)),
+                          leading: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(color: C.accentSoft, borderRadius: BorderRadius.circular(12)),
+                            child: const Icon(Icons.description_outlined, color: C.accent),
+                          ),
+                          title: Text(f.title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5)),
+                          subtitle: Text(f.label, style: const TextStyle(color: C.muted)),
+                          trailing: const Icon(Icons.download_rounded, color: C.accent),
+                          onTap: () => openLink(f.url),
+                        ),
+                      ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
