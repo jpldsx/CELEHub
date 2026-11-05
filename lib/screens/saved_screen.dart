@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models.dart';
 import '../store.dart';
+import '../widgets.dart';
 import 'video_list_screen.dart';
 
 class SavedScreen extends StatelessWidget {
@@ -14,40 +15,25 @@ class SavedScreen extends StatelessWidget {
         final favs = Store.favorites();
         final recents = Store.recents();
         if (favs.isEmpty && recents.isEmpty) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(32),
-              child: Text('Videos you save, and the ones you watch, show up here.', textAlign: TextAlign.center),
-            ),
-          );
+          return const EmptyState(icon: Icons.bookmark_border_rounded, text: 'Videos you save, and the ones you watch, show up here.');
         }
-        final List<Widget> items = <Widget>[];
+        final List<Widget> items = <Widget>[
+          const HeroBanner(title: 'Your Library', subtitle: 'Saved and recently watched'),
+        ];
         if (favs.isNotEmpty) {
-          items.add(_header(context, 'Saved', null));
+          items.add(const SectionTitle('Saved'));
           for (final Video v in favs) {
             items.add(VideoCard(video: v));
           }
         }
         if (recents.isNotEmpty) {
-          items.add(_header(context, 'Recently watched', () => Store.clearRecents()));
+          items.add(SectionTitle('Recently watched', trailing: TextButton(onPressed: () => Store.clearRecents(), child: const Text('Clear'))));
           for (final Video v in recents) {
             items.add(VideoCard(video: v));
           }
         }
-        return ListView(children: items);
+        return ListView(padding: const EdgeInsets.only(bottom: 12), children: items);
       },
-    );
-  }
-
-  Widget _header(BuildContext context, String text, VoidCallback? onClear) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 8, 2),
-      child: Row(
-        children: [
-          Expanded(child: Text(text, style: Theme.of(context).textTheme.titleMedium)),
-          if (onClear != null) TextButton(onPressed: onClear, child: const Text('Clear')),
-        ],
-      ),
     );
   }
 }
