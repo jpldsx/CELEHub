@@ -49,7 +49,11 @@ class Api {
 
   /* ---------- videos ---------- */
 
+  // why the last load failed (shown on screen when the list is empty)
+  static String lastError = '';
+
   static Future<VideosResult> videos(String page) async {
+    lastError = '';
     try {
       final r = await http.get(_uri('/api/videos', {'page': page}), headers: _headers()).timeout(const Duration(seconds: 15));
       final d = _decode(r);
@@ -61,7 +65,14 @@ class Api {
             .toList();
         return VideosResult(list, false);
       }
-    } catch (_) {}
+      if (d == null) {
+        lastError = 'The website sent a web page instead of the video list (HTTP ${r.statusCode}). Cloudflare may be blocking the app, or siteUrl in config.dart is not your site.';
+      } else {
+        lastError = 'The website answered, but not with a video list (HTTP ${r.statusCode}). Is the database (D1) connected?';
+      }
+    } catch (e) {
+      lastError = 'Could not reach ${Config.siteUrl}. Check your internet and siteUrl in config.dart.';
+    }
     return VideosResult(Store.cachedVideos(page), true);
   }
 
