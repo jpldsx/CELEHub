@@ -33,6 +33,8 @@ class PlayerScreen extends StatefulWidget {
 
 class _PlayerScreenState extends State<PlayerScreen> {
   late final WebViewController _web;
+  String _blocked = '';   // a jump the video page tried to make (shown so we can see what is going on)
+  String _error = '';
 
   @override
   void initState() {
@@ -42,11 +44,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0xFF000000))
       ..setUserAgent(_chromeUserAgent)
-      ..setNavigationDelegate(NavigationDelegate(onNavigationRequest: (req) {
-        final u = req.url;
-        if (u == 'about:blank' || u.startsWith(Config.siteUrl)) return NavigationDecision.navigate;
-        return req.isMainFrame ? NavigationDecision.prevent : NavigationDecision.navigate;   // the page can't wander off
-      }))
+      ..setNavigationDelegate(NavigationDelegate(
+        onNavigationRequest: (req) {
+          final u = req.url;
+          if (!req.isMainFrame) return NavigationDecision.navigate;               // the video box inside the page
+          if (u == 'about:blank' || u.startsWith('${Config.siteUrl}/player')) return NavigationDecision.navigate;
+          if (mounted) setState(() => _blocked = u);                              // the page tried to leave: stay on the video
+          return NavigationDecision.prevent;
+        },
+        onWebResourceError: (e) {
+          if (mounted) setState(() => _error = '${e.errorCode} ${e.description}');
+        },
+      ))
       ..loadRequest(Uri.parse(_playerUrl(widget.video)));
     _allowVideoHosts();
   }
@@ -83,9 +92,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   Wrap(spacing: 6, runSpacing: 6, children: [for (final t in v.tags) Chip(label: Text(t), visualDensity: VisualDensity.compact)]),
                 ],
                 const SizedBox(height: 14),
-                const Text('If the player stays blank, tap "Open outside".', style: TextStyle(fontSize: 12)),
-                const SizedBox(height: 4),
                 SelectableText('Source: ${v.file.isNotEmpty ? v.file : v.embedUrl}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                if (_blocked.isNotEmpty)
+                  SelectableText('Blocked a jump to: $_blocked', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                if (_error.isNotEmpty)
+                  SelectableText('Player error: $_error', style: const TextStyle(fontSize: 11, color: Colors.grey)),
                 const SizedBox(height: 8),
                 Row(
                   children: [
@@ -99,12 +110,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           label: Text(fav ? 'Saved' : 'Save'),
                         );
                       },
-                    ),
-                    const SizedBox(width: 10),
-                    OutlinedButton.icon(
-                      onPressed: () => openLink(v.openUrl),
-                      icon: const Icon(Icons.open_in_new),
-                      label: const Text('Open outside'),
                     ),
                   ],
                 ),
